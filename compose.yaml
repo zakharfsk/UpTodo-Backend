@@ -1,6 +1,31 @@
+version: '3.8'
+
 services:
   server:
-    build:
-      context: .
+    container_name: api-server
+    entrypoint: /django
+    build: .
     ports:
-      - 8000:8000
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DJANGO_SUPERUSER_PASSWORD: "root"
+      DJANGO_SUPERUSER_USERNAME: "root"
+      DJANGO_SUPERUSER_EMAIL: "root@root.com"
+    depends_on:
+      - database
+
+  database:
+    container_name: api-database
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: api_database
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

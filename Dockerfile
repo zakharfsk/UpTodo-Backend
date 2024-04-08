@@ -18,6 +18,17 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+RUN apt-get update \
+  # dependencies for building Python packages
+  && apt-get install -y build-essential \
+  # psycopg2 dependencies
+  && apt-get install -y libpq-dev \
+  # Translations dependencies
+  && apt-get install -y gettext \
+  # cleaning up unused files
+  && apt-get purge -y --auto-remove \
+  && rm -rf /var/lib/apt/lists/*
+
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
 # Leverage a bind mount to requirements.txt to avoid having to copy them into
@@ -26,11 +37,18 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
 
-# Copy the source code into the container.
-COPY . .
-
 # Expose the port that the application listens on.
 EXPOSE 8000
 
+COPY ./entrypoints/entrypoint.sh /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint
+RUN chmod +x /entrypoint
+
+COPY ./entrypoints/django-entrypoint.sh /django
+RUN sed -i 's/\r$//g' /django
+RUN chmod +x /django
+
+COPY . .
+
 # Run the application.
-CMD gunicorn 'config.wsgi' --bind=0.0.0.0:8000
+ENTRYPOINT ["/entrypoint"]
